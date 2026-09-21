@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Конвертер прайс-листов — как это работает</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #1e2430; --muted: #667085;
+    --border: #e4e7ec; --accent: #2f5fd0; --accent-soft: #eaf0fc;
+    --ok-bg: #e9f6ef; --ok-text: #17714a; --warn-bg: #fef3ec; --warn-text: #a1580e;
+    --code-bg: #eef1f5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151b; --card: #1a1f28; --text: #e5e9f0; --muted: #94a0b3;
+      --border: #2b3240; --accent: #7ba3f0; --accent-soft: #212c42;
+      --ok-bg: #17281f; --ok-text: #6fce9e; --warn-bg: #2e2418; --warn-text: #eab371;
+      --code-bg: #242b36;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 36px 20px 64px; }
+  h1 { font-size: 26px; margin: 0 0 6px; }
+  h2 { font-size: 19px; margin: 36px 0 12px; padding-bottom: 6px; border-bottom: 2px solid var(--border); }
+  .sub { color: var(--muted); margin: 0 0 26px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin: 12px 0; }
+  code { background: var(--code-bg); border-radius: 4px; padding: 1px 6px; font: 13px/1.5 ui-monospace, "SF Mono", Menlo, monospace; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; background: var(--card); }
+  .tablebox { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; margin: 12px 0; }
+  th, td { padding: 7px 12px; border-bottom: 1px solid var(--border); text-align: left; }
+  th { background: var(--accent-soft); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  ul { margin: 8px 0; padding-left: 22px; }
+  li { margin: 4px 0; }
+  /* схема конвейера */
+  .flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin: 18px 0; }
+  .flow .step {
+    flex: 1 1 150px; background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px; text-align: center; min-width: 150px;
+  }
+  .flow .step b { display: block; margin-bottom: 4px; }
+  .flow .step small { color: var(--muted); }
+  .flow .arr { align-self: center; color: var(--accent); font-size: 22px; padding: 0 2px; }
+  .flow .step.hl { border-color: var(--accent); background: var(--accent-soft); }
+  .note { background: var(--warn-bg); border-radius: 10px; padding: 12px 18px; margin: 10px 0; }
+  .note b { color: var(--warn-text); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Конвертер прайс-листов</h1>
+<p class="sub">Автоматическая служба, которая ежедневно превращает прайс-листы поставщиков в файлы единого формата для загрузки на сайт. Работает без участия человека.</p>
+
+<div class="flow">
+  <div class="step"><b>Поставщики</b><small>прайс-листы Excel и XML — у каждого свой формат</small></div>
+  <div class="arr">→</div>
+  <div class="step"><b>Папка input</b><small>\\dev.best-practice.ru\input</small></div>
+  <div class="arr">→</div>
+  <div class="step hl"><b>Конвертер</b><small>ежедневно в 22:00, около 2 минут</small></div>
+  <div class="arr">→</div>
+  <div class="step"><b>Папка output</b><small>CSV единого формата + сигнал done.txt</small></div>
+  <div class="arr">→</div>
+  <div class="step"><b>Сайт</b><small>модуль загрузки забирает данные</small></div>
+</div>
+
+<h2>Что делает конвертер</h2>
+<div class="card">
+<p>Каждый поставщик присылает прайс в собственном виде: разные колонки, листы, единицы измерения, обозначения валют и наличия. Конвертер приводит всё к единой таблице из 21 колонки (артикул, наименование, группа товаров, цена, валюта, количество, габариты, вес, объём, гарантия, состояние товара и др.). При этом:</p>
+<ul>
+  <li>валюты приводятся к стандарту (RUR, руб., ₽ → RUB; $ → USD; € → EUR);</li>
+  <li>габариты — к сантиметрам, вес — к килограммам, объём — к кубометрам
+      (если поставщик не указал объём, он вычисляется из габаритов);</li>
+  <li>числа очищаются от разнобоя форматов (разделители, «научная запись»);</li>
+  <li>состояние товара нормализуется: Стандарт, Распродажа, Некондиция,
+      Дефект упаковки, Из ремонта и т.п. — по справочникам каждого поставщика;</li>
+  <li>тексты очищаются от служебных символов, которые ломают загрузку.</li>
+</ul>
+<p>Каждая строка результата получает сквозной номер, а обработанные исходники
+аккуратно складываются в архив по датам — всегда можно поднять историю
+и сверить любую цифру с оригиналом поставщика.</p>
+</div>
+
+<h2>Какие прайс-листы обрабатываются</h2>
+<div class="tablebox"><table>
+  <tr><th>Поставщик</th><th>Файл во входной папке</th><th>Результат</th></tr>
+  <tr><td>3LOGIC</td><td>3logic….xlsx</td><td>3logic_2.csv</td></tr>
+  <tr><td>A1TIS</td><td>A1TIS.xlsx</td><td>A1TIS.csv</td></tr>
+  <tr><td>ABSOLUT TRADE</td><td>ABSOLUT TRADE.xlsx (прайс + некондиция)</td><td>ABSOLUT TRADE.csv</td></tr>
+  <tr><td>ARTRON</td><td>Artron.xlsx</td><td>Artron.csv</td></tr>
+  <tr><td>Citilink</td><td>Citilink….xlsx</td><td>Citilink.csv</td></tr>
+  <tr><td>Getsy</td><td>Getsy.xlsx</td><td>Getsy.csv</td></tr>
+  <tr><td>iDistribute</td><td>iDistribute.xls</td><td>iDistribute.csv</td></tr>
+  <tr><td>Komus</td><td>komus….xlsx (опт + распродажа)</td><td>Komus_2.csv</td></tr>
+  <tr><td>Marvel</td><td>Marvel.xlsx</td><td>Marvel.csv</td></tr>
+  <tr><td>Merlion</td><td>Merlion_2.xlsm</td><td>Merlion_2.csv</td></tr>
+  <tr><td>MICS</td><td>MICS.xlsx</td><td>MICS.csv</td></tr>
+  <tr><td>Netlab</td><td>Price.xml</td><td>NetLab_XML.csv</td></tr>
+  <tr><td>OCS</td><td>OCS.xlsx</td><td>OCS.csv</td></tr>
+  <tr><td>ProWay</td><td>ProWay.xlsx (склад + super sale)</td><td>ProWay.csv</td></tr>
+  <tr><td>Resurs Media</td><td>ResursMedia_Регуляр.xlsx / ResursMedia_Некондиция.xlsx</td><td>Resurs Media_Struct.csv / Resurs Media_Nekond.csv</td></tr>
+  <tr><td>Treolan</td><td>Treolan_Регуляр / _Демо / _Некондиция .xlsx</td><td>Treolan.csv / Treolan_DEMO.csv / Treolan_NC.csv</td></tr>
+  <tr><td>VTT</td><td>vtt.main.price.rub.xls (и .usd при появлении)</td><td>VTT_RUB.csv / VTT_USD.csv</td></tr>
+  <tr><td>VVP Group</td><td>VVPGroup.xlsx</td><td>VVP_Group.csv</td></tr>
+</table></div>
+<p class="sub">Регистр букв в именах не важен. Если какого-то файла в день запуска нет — это не ошибка: обработаются те, что есть, отсутствующие подхватятся в следующий раз.</p>
+
+<h2>Надёжность</h2>
+<div class="card">
+<ul>
+  <li><b>Ошибка одного поставщика не мешает остальным.</b> Если поставщик изменил
+      структуру прайса, его файл помечается ошибкой с точным описанием
+      (например, «не найдена колонка “Цена”»), остальные обрабатываются как обычно.
+      Неверные данные «со сдвигом колонок» в результат попасть не могут.</li>
+  <li><b>Сигнал готовности.</b> Файл <code>done.txt</code> создаётся только после
+      завершения всей обработки — сайт никогда не заберёт данные «наполовину».</li>
+  <li><b>Защита от наложения запусков</b> и повторных прогонов в один день.</li>
+  <li><b>Полный архив.</b> Оригиналы прайсов, журнал работы и отчёт каждого
+      прогона хранятся в папке архива по датам.</li>
+</ul>
+</div>
+
+<h2>Где смотреть результаты</h2>
+<div class="tablebox"><table>
+  <tr><th>Что</th><th>Где</th></tr>
+  <tr><td>Готовые файлы для сайта</td><td><code>\\dev.best-practice.ru\output</code></td></tr>
+  <tr><td>Отчёт прогона (что обработано, сколько строк, ошибки)</td><td><code>\\dev.best-practice.ru\archive\ГГГГ.ММ.ДД\run_report_*.csv</code></td></tr>
+  <tr><td>Подробный журнал работы</td><td>там же, <code>run_*.log</code></td></tr>
+  <tr><td>Оригиналы обработанных прайсов</td><td>там же, по датам</td></tr>
+</table></div>
+
+<h2>Обслуживание</h2>
+<div class="card">
+<ul>
+  <li>Расписание: ежедневно в <b>22:00</b> (задача «PriceConverter» в Планировщике Windows; время можно изменить).</li>
+  <li>Новый поставщик или смена имени файла — правка одного файла настроек
+      <code>settings.yaml</code>, конвертер трогать не нужно.</li>
+  <li>Если поставщик временно «сломал» прайс — его можно отключить одной
+      строкой в настройках (<code>enabled: false</code>), остальные продолжат работать.</li>
+  <li>Проверка без обработки: команда <code>main.py --check</code> показывает
+      доступность папок и какой файл каким правилом будет подхвачен.</li>
+</ul>
+</div>
+
+<div class="note"><b>Технически:</b> служба написана на Python 3.12, работает на
+Windows-сервере, папки обмена — сетевые (<code>\\dev.best-practice.ru</code>).
+Установлена в <code>C:\Convert\best-practice-converter</code>; обновление —
+одной командой, настройки при обновлении сохраняются.</div>
+
+</div>
+</body>
+</html>
