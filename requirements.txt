@@ -1,0 +1,5 @@
+openpyxl>=3.1
+PyYAML>=6.0
+xlrd>=2.0        # legacy .xls: VTT, iDistribute (+ outline-уровни строк)
+# разработка/тесты:
+pytest>=7.0
