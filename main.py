@@ -34,9 +34,13 @@ BASE_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE_DIR))
 
 from common.log import setup as setup_log          # noqa: E402
+from common.notify import load_email_cfg, send_mail, want_mail  # noqa: E402
+from common import report_html                     # noqa: E402
 from workers._base import Ctx                      # noqa: E402
 
 DONE_FILE = "done.txt"
+STATUS_FILE = "status.txt"       # сводка последнего прогона в выходном каталоге
+REPORT_PAGE = "report.html"      # страница диагностики в выходном каталоге
 # Служебные файлы конвейера — не прайс-листы, в сопоставлении не участвуют
 SERVICE_FILES = {DONE_FILE, "converter.lock", "start.cmd", "_start.cmd"}
 
@@ -168,11 +172,33 @@ def check(settings_path: Path) -> int:
     return 0 if ok else 2
 
 
+def write_status(output_dir: Path, text: str) -> None:
+    """status.txt — состояние конвертера одним файлом в выходном каталоге.
+    Ошибка записи (сеть) не должна ронять прогон."""
+    try:
+        (output_dir / STATUS_FILE).write_text(text, encoding="utf-8")
+    except OSError:
+        pass
+
+
+def notify_fatal(message: str) -> None:
+    """Письмо о фатальной ошибке (если настроен email.yaml). Не бросает исключений."""
+    cfg = load_email_cfg(BASE_DIR)
+    if cfg is None:
+        return
+    try:
+        send_mail(cfg, "Конвертер прайс-листов: ФАТАЛЬНАЯ ОШИБКА",
+                  f"Прогон {datetime.now():%d.%m.%Y %H:%M:%S} не выполнен.\n\n{message}")
+    except Exception as e:                                   # noqa: BLE001
+        print(f"письмо о фатальной ошибке не отправлено: {e}", file=sys.stderr)
+
+
 def run(settings_path: Path) -> int:
     try:
         cfg = load_settings(settings_path)
     except Exception as e:
         print(f"ФАТАЛЬНО: настройки не прочитаны: {e}", file=sys.stderr)
+        notify_fatal(f"Настройки не прочитаны: {e}")
         return 2
 
     dirs = cfg["dirs"]
@@ -184,6 +210,7 @@ def run(settings_path: Path) -> int:
     try:
         if not input_dir.is_dir():
             print(f"ФАТАЛЬНО: входной каталог недоступен: {input_dir}", file=sys.stderr)
+            notify_fatal(f"Входной каталог недоступен: {input_dir}")
             return 2
         output_dir.mkdir(parents=True, exist_ok=True)
         # Рабочий подкаталог: имя фиксируется на старте и не меняется (ТЗ 4.1.1)
@@ -191,6 +218,7 @@ def run(settings_path: Path) -> int:
         archive_sub.mkdir(parents=True, exist_ok=True)
     except OSError as e:
         print(f"ФАТАЛЬНО: каталог недоступен (сеть/права): {e}", file=sys.stderr)
+        notify_fatal(f"Каталог недоступен (сеть/права): {e}")
         return 2
 
     log = setup_log(archive_sub / f"run_{datetime.now():%H%M%S}.log")
@@ -210,6 +238,27 @@ def run(settings_path: Path) -> int:
         log.warning("Устаревший %s (%.1f ч) — перехватываем", lock.name, age_h)
         lock.write_text(str(os.getpid()), encoding="utf-8")
 
+    started = datetime.now()
+    write_status(output_dir,
+                 f"RUNNING: старт {started:%d.%m.%Y %H:%M:%S}, PID {os.getpid()}\n"
+                 f"Если прогон давно должен был завершиться, а эта строка осталась — "
+                 f"он оборвался аварийно; см. run_*.log в {archive_sub}\n")
+    try:
+        return _run_locked(cfg, input_dir, output_dir, archive_dir, archive_sub,
+                           lock, log, started)
+    except Exception as e:  # непредвиденное падение вне обработки одного файла
+        log.error("ФАТАЛЬНО: непредвиденная ошибка прогона: %s", e)
+        log.debug("%s", traceback.format_exc())
+        write_status(output_dir,
+                     f"FATAL: прогон {started:%d.%m.%Y %H:%M:%S} оборван ошибкой: {e}\n"
+                     f"Подробности: run_*.log в {archive_sub}\n")
+        notify_fatal(f"Прогон оборван непредвиденной ошибкой.\n\n{traceback.format_exc()}")
+        lock.unlink(missing_ok=True)
+        return 2
+
+
+def _run_locked(cfg: dict, input_dir: Path, output_dir: Path, archive_dir: Path,
+                archive_sub: Path, lock: Path, log, started: datetime) -> int:
     items = parse_items(cfg)
     service = {s.casefold() for s in SERVICE_FILES} | {lock.name.casefold()}
     available = sorted(p for p in input_dir.iterdir()
@@ -220,11 +269,24 @@ def run(settings_path: Path) -> int:
     had_error = False
     done_count = 0
 
+    # Отчёт пишется ИНКРЕМЕНТАЛЬНО — строка за строкой по ходу прогона:
+    # при аварийном обрыве отчёт остаётся заполненным до места падения
+    report = archive_sub / f"run_report_{datetime.now():%H%M%S}.csv"
+    rep_f = open(report, "w", encoding="utf-8-sig", newline="\n")
+    rep_f.write("Прайс-лист;Маска;Файл;Статус;Строк;Строк с ошибками;Время, сек;Сообщение\n")
+    rep_f.flush()
+
+    def rep_row(it: Item) -> None:
+        rep_f.write(f"{it.name};{mask_str(it)};{it.src_file};{it.status};{it.rows};"
+                    f"{it.rows_err};{it.seconds:.1f};{it.message}\n")
+        rep_f.flush()
+
     for item in items:
         if not item.enabled:
             item.status = "SKIP"
             item.message = "отключён в настройках"
             log.info("[%s] SKIP (отключён)", item.name)
+            rep_row(item)
             continue
 
         matches = [p for p in available if p not in claimed and match_any(p.name, item.masks)]
@@ -232,6 +294,7 @@ def run(settings_path: Path) -> int:
             item.status = "NO_FILE"
             item.message = f"файл по маске «{mask_str(item)}» не найден"
             log.warning("[%s] файл не найден (маска «%s»)", item.name, mask_str(item))
+            rep_row(item)
             continue
         src = matches[0]
         if len(matches) > 1:
@@ -286,27 +349,71 @@ def run(settings_path: Path) -> int:
         finally:
             item.seconds = time.monotonic() - t0
             shutil.rmtree(tmp_dir, ignore_errors=True)
+            rep_row(item)
 
     unknown = [p.name for p in available if p not in claimed]
     if unknown:
         log.warning("Нераспознанные файлы во входном каталоге: %s", ", ".join(unknown))
-
-    report = archive_sub / f"run_report_{datetime.now():%H%M%S}.csv"
-    with open(report, "w", encoding="utf-8-sig", newline="\n") as f:
-        f.write("Прайс-лист;Маска;Файл;Статус;Строк;Строк с ошибками;Время, сек;Сообщение\n")
-        for it in items:
-            f.write(f"{it.name};{mask_str(it)};{it.src_file};{it.status};{it.rows};"
-                    f"{it.rows_err};{it.seconds:.1f};{it.message}\n")
-        if unknown:
-            f.write(f";;{', '.join(unknown)};UNKNOWN;;;;нераспознанные файлы\n")
+        rep_f.write(f";;{', '.join(unknown)};UNKNOWN;;;;нераспознанные файлы\n")
+    rep_f.close()
     log.info("Отчёт прогона: %s", report)
 
     if done_count and cfg.get("defaults", {}).get("write_done", True):
         (output_dir / DONE_FILE).write_text("", encoding="utf-8")
         log.info("Создан %s (обработано файлов: %d)", DONE_FILE, done_count)
 
+    finished = datetime.now()
+    err_count = sum(1 for i in items if i.status == "ERROR")
+    summary = {
+        "date": f"{started:%d.%m.%Y}", "start": f"{started:%H:%M:%S}",
+        "finish": f"{finished:%H:%M:%S}",
+        "seconds": (finished - started).total_seconds(),
+        "result": "ОШИБКИ" if had_error else "OK",
+        "done": done_count, "error": err_count,
+        "no_file": sum(1 for i in items if i.status == "NO_FILE"),
+        "rows": sum(i.rows for i in items),
+        "rows_err": sum(i.rows_err for i in items),
+        "report": str(report),
+    }
+
+    # Диагностика: история прогонов в архиве + страница report.html в output
+    try:
+        report_html.append_history(archive_dir, summary)
+        page = report_html.render_page(items, unknown, summary,
+                                       report_html.read_history(archive_dir))
+        (output_dir / REPORT_PAGE).write_text(page, encoding="utf-8")
+        log.info("Страница диагностики: %s", output_dir / REPORT_PAGE)
+    except Exception as e:                                   # noqa: BLE001
+        log.error("Диагностика (history/%s) не записана: %s", REPORT_PAGE, e)
+    write_status(output_dir, "\n".join([
+        f"Последний прогон: {summary['date']} {summary['start']} — "
+        f"{summary['finish']} ({summary['seconds']:.0f} сек)",
+        f"Итог: {summary['result']}",
+        f"DONE={done_count}, ERROR={err_count}, NO_FILE={summary['no_file']}, "
+        f"строк={summary['rows']}, строк с ошибками={summary['rows_err']}",
+        f"Отчёт: {report}",
+        f"Диагностика: {REPORT_PAGE} рядом с этим файлом",
+    ]) + "\n")
+
+    # Письмо-отчёт (email.yaml рядом с main.py; mode: always | errors)
+    email_cfg = load_email_cfg(BASE_DIR)
+    if want_mail(email_cfg, had_error):
+        try:
+            text, html_body = report_html.render_email(items, unknown, summary)
+            subject = (f"Конвертер прайс-листов: {summary['result']} — "
+                       f"обработано {done_count}, ошибок {err_count}, "
+                       f"строк {summary['rows']} ({summary['date']})")
+            attach = [(report.name, report.read_bytes(), "text", "csv")]
+            send_mail(email_cfg, subject, text, html_body, attach)
+            log.info("Письмо-отчёт отправлено: %s", ", ".join(email_cfg["mail_to"]))
+        except Exception as e:                               # noqa: BLE001
+            log.error("Письмо-отчёт не отправлено: %s", e)
+            log.debug("%s", traceback.format_exc())
+    elif email_cfg is None:
+        log.info("Почтовые уведомления не настроены (нет email.yaml)")
+
     log.info("Завершено. DONE=%d, ERROR=%d, всего записей настроено=%d",
-             done_count, sum(1 for i in items if i.status == "ERROR"), len(items))
+             done_count, err_count, len(items))
     lock.unlink(missing_ok=True)  # при аварийном завершении лок снимет 6-часовой перехват
     return 1 if had_error else 0
 

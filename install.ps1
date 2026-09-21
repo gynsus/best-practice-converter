@@ -45,11 +45,21 @@ Expand-Archive $tmp -DestinationPath $extract
 New-Item -ItemType Directory -Force (Split-Path $Dest) | Out-Null
 $src = (Get-ChildItem $extract | Select-Object -First 1).FullName
 if (Test-Path $Dest) {
-    $keep = Join-Path $env:TEMP "settings.keep.yaml"
-    if (Test-Path "$Dest\settings.yaml") { Copy-Item "$Dest\settings.yaml" $keep -Force }
+    # keep local-only files across updates: settings and mail credentials
+    $keepFiles = @("settings.yaml", "email.yaml")
+    $keepDir = Join-Path $env:TEMP "bpc_keep"
+    if (Test-Path $keepDir) { Remove-Item -Recurse -Force $keepDir }
+    New-Item -ItemType Directory $keepDir | Out-Null
+    foreach ($f in $keepFiles) {
+        if (Test-Path "$Dest\$f") { Copy-Item "$Dest\$f" (Join-Path $keepDir $f) -Force }
+    }
     Remove-Item -Recurse -Force $Dest
     Copy-Item $src $Dest -Recurse
-    if (Test-Path $keep) { Copy-Item $keep "$Dest\settings.yaml" -Force; Remove-Item $keep }
+    foreach ($f in $keepFiles) {
+        $kept = Join-Path $keepDir $f
+        if (Test-Path $kept) { Copy-Item $kept "$Dest\$f" -Force }
+    }
+    Remove-Item -Recurse -Force $keepDir
 } else {
     Copy-Item $src $Dest -Recurse
 }
@@ -67,7 +77,8 @@ Write-Host "== 4/5 Directory / file-matching check (--check) =="
 if ($LASTEXITCODE -ne 0) { Write-Host "WARNING: check reported problems (see [!!] above)." -ForegroundColor Yellow }
 
 Write-Host "== 5/5 Done =="
-Write-Host "Run now:       $venvPy $Dest\main.py"
+Write-Host "Run now:       $Dest\run.cmd   (output goes to launcher.log)"
 Write-Host "Re-check:      $venvPy $Dest\main.py --check"
-Write-Host "Scheduler (daily 22:00):"
-Write-Host '  schtasks /Create /F /TN "PriceConverter" /SC DAILY /ST 22:00 /TR "C:\Convert\best-practice-converter\.venv\Scripts\python.exe C:\Convert\best-practice-converter\main.py"'
+Write-Host "Scheduler (daily 22:00, via run.cmd so early errors are logged):"
+Write-Host '  schtasks /Create /F /TN "PriceConverter" /SC DAILY /ST 22:00 /TR "C:\Convert\best-practice-converter\run.cmd"'
+Write-Host "Mail reports:  create email.yaml next to main.py (see INSTALL-WINDOWS.md)"

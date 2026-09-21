@@ -68,16 +68,20 @@ C:\Convert\best-practice-converter\.venv\Scripts\python.exe C:\Convert\best-prac
 
 ## Планировщик задач
 
+Запускать через `run.cmd` — он перенаправляет весь вывод (включая ранние
+фатальные ошибки, случившиеся ДО создания лога конвертера) в
+`C:\Convert\best-practice-converter\launcher.log`.
+
 Ежедневно в 22:00 (пример; время/периодичность — на ваше усмотрение):
 
 ```powershell
-schtasks /Create /F /TN "PriceConverter" /SC DAILY /ST 22:00 /TR "C:\Convert\best-practice-converter\.venv\Scripts\python.exe C:\Convert\best-practice-converter\main.py"
+schtasks /Create /F /TN "PriceConverter" /SC DAILY /ST 22:00 /TR "C:\Convert\best-practice-converter\run.cmd"
 ```
 
 Каждые 30 минут:
 
 ```powershell
-schtasks /Create /F /TN "PriceConverter" /SC MINUTE /MO 30 /TR "C:\Convert\best-practice-converter\.venv\Scripts\python.exe C:\Convert\best-practice-converter\main.py"
+schtasks /Create /F /TN "PriceConverter" /SC MINUTE /MO 30 /TR "C:\Convert\best-practice-converter\run.cmd"
 ```
 
 Наложения прогонов не страшны: второй экземпляр увидит `converter.lock`
@@ -97,10 +101,44 @@ cmdkey /add:dev.best-practice.ru /user:ИМЯ /pass:ПАРОЛЬ
 
 (выполнить под тем же пользователем, от которого работает задача).
 
+## Почтовые уведомления (письмо-отчёт после каждого прогона)
+
+Учётные данные почты хранятся ТОЛЬКО на VPS в файле
+`C:\Convert\best-practice-converter\email.yaml` (в репозиторий не попадает,
+при обновлении сохраняется). Создать файл — вставить в PowerShell одним блоком:
+
+```powershell
+Set-Content C:\Convert\best-practice-converter\email.yaml -Encoding UTF8 -Value @'
+enabled: true
+smtp_host: mail.best-practice.ru
+smtp_port: 465
+user: stocks@best-practice.ru
+password: "PASSWORD_HERE"
+mail_from: stocks@best-practice.ru
+mail_to: [grigoryf@njsoft.dev, alarkin@best-practice.ru]
+mode: always
+verify_ssl: true
+'@
+```
+
+`mode: always` — письмо после каждого прогона; `errors` — только при ошибках
+и фатальных сбоях. Если сервер с самоподписанным сертификатом —
+`verify_ssl: false`. Письмо содержит сводку, таблицу по всем прайс-листам и
+вложение `run_report_*.csv`; о фатальных ошибках (недоступна сеть, битые
+настройки) уходит отдельное письмо.
+
 ## Где смотреть результаты работы
 
+- Быстрая сводка: `\\dev.best-practice.ru\output\status.txt` — одна страница
+  текста о последнем прогоне; строка `RUNNING…` спустя долгое время после
+  старта означает, что прогон оборвался аварийно;
+- Диагностика в браузере: `\\dev.best-practice.ru\output\report.html` —
+  таблица последнего прогона со статусами + история прогонов;
 - Результаты: `\\dev.best-practice.ru\output` (CSV + `done.txt`);
 - Логи и отчёты: `\\dev.best-practice.ru\archive\ГГГГ.ММ.ДД\` —
   `run_*.log` (подробный лог с трейсбеками) и `run_report_*.csv`
-  (сводка: статус, строк, строк с ошибками, время, сообщения);
-- туда же перемещаются обработанные исходники.
+  (пишется построчно по ходу прогона — при обрыве заполнен до места падения);
+  история всех прогонов — `\\dev.best-practice.ru\archive\history.csv`;
+- Ранние фатальные ошибки (до создания лога):
+  `C:\Convert\best-practice-converter\launcher.log`;
+- туда же в архив перемещаются обработанные исходники.
