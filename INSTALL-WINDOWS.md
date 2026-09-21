@@ -36,28 +36,31 @@ C:\Convert\best-practice-converter\.venv\Scripts\python.exe C:\Convert\best-prac
 
 | Поставщик | Имя файла в input (маска) | Файл результата |
 |---|---|---|
-| 3LOGIC | `3logic_2.xlsx` | 3logic_2.csv |
+| 3LOGIC | `3logic*.xlsx` | 3logic_2.csv |
 | A1TIS | `A1TIS.xls*` | A1TIS.csv |
 | ABSOLUT TRADE | `ABSOLUT TRADE.xlsx` | ABSOLUT TRADE.csv |
 | ARTRON | `Artron.xlsx` | Artron.csv |
-| Citilink | `CitilinkPrice.xlsx` | Citilink.csv |
+| Citilink | `Citilink*.xlsx` | Citilink.csv |
 | Getsy | `Getsy.xlsx` | Getsy.csv |
 | iDistribute | `iDistribute.xls` | iDistribute.csv |
-| Komus | `komus_2.xlsx` | Komus_2.csv |
+| Komus | `komus*.xlsx` (CSV-дубль игнорируется) | Komus_2.csv |
 | Marvel | `Marvel.xlsx` | Marvel.csv |
 | Merlion | `Merlion_2.xlsm` | Merlion_2.csv |
 | MICS | `MICS.xlsx` | MICS.csv |
-| Netlab | `NetlabPrice.xml` | NetLab_XML.csv |
+| Netlab | `*.xml` (Price.xml, NetlabPrice.xml) | NetLab_XML.csv |
 | OCS | `OCS.xlsx` | OCS.csv |
 | ProWay | `ProWay.xlsx` | ProWay.csv |
-| Resurs Media (неконд.) | `Resurs Media_price_nec.xlsx` | Resurs Media_Nekond.csv |
-| Resurs Media (структ.) | `Resurs Media_price_struct*.xlsx` | Resurs Media_Struct.csv |
-| Treolan | `Treolan.xlsx` | Treolan.csv |
-| Treolan (демо) | `Treolan_DEMO.xlsx` | Treolan_DEMO.csv |
-| Treolan (некондиция) | `Treolan_NC.xlsx` | Treolan_NC.csv |
+| Resurs Media (неконд.) | `ResursMedia_Некондиция*.xlsx` | Resurs Media_Nekond.csv |
+| Resurs Media (структ.) | `ResursMedia_Регуляр*.xlsx` | Resurs Media_Struct.csv |
+| Treolan | `Treolan_Регуляр*.xlsx` (или `Treolan.xlsx`) | Treolan.csv |
+| Treolan (демо) | `Treolan_Демо*.xlsx` (или `Treolan_DEMO.xlsx`) | Treolan_DEMO.csv |
+| Treolan (некондиция) | `Treolan_Некондиция*.xlsx` (или `Treolan_NC.xlsx`) | Treolan_NC.csv |
 | VTT (RUB) | `vtt.main.price.rub.xls` | VTT_RUB.csv |
 | VTT (USD) | `vtt.main.price.usd.xls` | VTT_USD.csv |
-| VVP Group | `VVP_Group*` | VVP_Group.csv |
+| VVP Group | `VVPGroup*` / `VVP_Group*` | VVP_Group.csv |
+
+Служебные файлы (`_start.cmd`, `start.cmd`, `done.txt`, `converter.lock`)
+игнорируются и предупреждений не вызывают.
 
 Если поставщик присылает файлы с датой в имени (например
 `price_treolan_2026-09-21.xlsx`) — поменяйте маску записи на

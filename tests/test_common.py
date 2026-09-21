@@ -114,3 +114,15 @@ def test_writer_defaults_and_volume(tmp_path):
     assert f2[0] == "11"
     assert "валюта не определена" in f2[20]
     assert w.last_number == 11
+
+
+def test_treolan_quality_by_filename_both_styles():
+    """Качество Treolan по имени файла: латинские и кириллические варианты."""
+    from pathlib import Path
+    from workers.treolan import quality_for_file as q
+    assert q(Path("Treolan_Регуляр.xlsx")) == "Стандарт"
+    assert q(Path("Treolan.xlsx")) == "Стандарт"
+    assert q(Path("Treolan_Демо.xlsx")) == "Демо"
+    assert q(Path("Treolan_DEMO.xlsx")) == "Демо"
+    assert q(Path("Treolan_Некондиция.xlsx")) == "Некондиция"
+    assert q(Path("Treolan_NC.xlsx")) == "Некондиция"

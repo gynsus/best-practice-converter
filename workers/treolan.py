@@ -32,10 +32,12 @@ DEFAULT_CURRENCY = "USD"
 
 
 def quality_for_file(src_path: Path) -> str:
+    """Качество — по имени файла; поддерживаются оба стиля именования:
+    Treolan_NC/_DEMO и кириллические Treolan_Некондиция/_Демо/_Регуляр."""
     stem = src_path.stem.casefold()
-    if stem.endswith("_nc"):
+    if stem.endswith("_nc") or "некондиц" in stem:
         return "Некондиция"
-    if stem.endswith("_demo"):
+    if stem.endswith("_demo") or "демо" in stem:
         return "Демо"
     return "Стандарт"
 

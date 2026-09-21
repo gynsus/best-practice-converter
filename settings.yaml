@@ -7,6 +7,7 @@
 #   name    — наименование прайса (для лога и отчёта);
 #   match   — имя файла во входном каталоге: точное или маска fnmatch
 #             (например "price_treolan*"); регистр не учитывается;
+#             допускается СПИСОК масок: match: ["новое_имя*", "старое имя.xlsx"];
 #   worker  — модуль workers/<worker>.py;
 #   result  — имя файла результата (совпадает с UF_FILENAME в Оснастке);
 #   enabled — false = прайс временно отключён (поставщик сломал формат и т.п.).
@@ -29,25 +30,25 @@ defaults:
   write_done: true   # создавать done.txt после успешной обработки >=1 файла
 
 pricelists:
-  - {name: 3LOGIC,               match: "3logic_2.xlsx",               worker: logic3_2,      result: "3logic_2.csv",            enabled: true}
+  - {name: 3LOGIC,               match: "3logic*.xlsx",               worker: logic3_2,      result: "3logic_2.csv",            enabled: true}
   - {name: A1TIS,                match: "A1TIS.xls*",                  worker: a1tis,         result: "A1TIS.csv",               enabled: true}
   - {name: ABSOLUT TRADE,        match: "ABSOLUT TRADE.xlsx",          worker: absolut,       result: "ABSOLUT TRADE.csv",       enabled: true}
   - {name: ARTRON,               match: "Artron.xlsx",                 worker: artron,        result: "Artron.csv",              enabled: true}
-  - {name: Citilink,             match: "CitilinkPrice.xlsx",          worker: citilink,      result: "Citilink.csv",            enabled: true}
+  - {name: Citilink,             match: "Citilink*.xlsx",          worker: citilink,      result: "Citilink.csv",            enabled: true}
   - {name: Getsy,                match: "Getsy.xlsx",                  worker: getsy,         result: "Getsy.csv",               enabled: true}
   - {name: iDistribute,          match: "iDistribute.xls",             worker: idistribute,   result: "iDistribute.csv",         enabled: true}
-  - {name: Komus,                match: "komus_2.xlsx",                worker: komus,         result: "Komus_2.csv",             enabled: true}
+  - {name: Komus,                match: "komus*.xlsx",                worker: komus,         result: "Komus_2.csv",             enabled: true}
   - {name: Marvel,               match: "Marvel.xlsx",                 worker: marvel,        result: "Marvel.csv",              enabled: true}
   - {name: Merlion,              match: "Merlion_2.xlsm",              worker: merlion,       result: "Merlion_2.csv",           enabled: true}
   - {name: MICS,                 match: "MICS.xlsx",                   worker: mics,          result: "MICS.csv",                enabled: true}
-  - {name: Netlab,               match: "NetlabPrice.xml",             worker: netlab,        result: "NetLab_XML.csv",          enabled: true}
+  - {name: Netlab,               match: "*.xml",             worker: netlab,        result: "NetLab_XML.csv",          enabled: true}
   - {name: OCS,                  match: "OCS.xlsx",                    worker: ocs,           result: "OCS.csv",                 enabled: true}
   - {name: ProWay,               match: "ProWay.xlsx",                 worker: proway,        result: "ProWay.csv",              enabled: true}
-  - {name: Resurs Media (неконд), match: "Resurs Media_price_nec.xlsx", worker: resurs_nekond, result: "Resurs Media_Nekond.csv", enabled: true}
-  - {name: Resurs Media (структ), match: "Resurs Media_price_struct*.xlsx", worker: resurs_struct, result: "Resurs Media_Struct.csv", enabled: true}
-  - {name: Treolan,              match: "Treolan.xlsx",                worker: treolan,       result: "Treolan.csv",             enabled: true}
-  - {name: Treolan (демо),       match: "Treolan_DEMO.xlsx",           worker: treolan,       result: "Treolan_DEMO.csv",        enabled: true}
-  - {name: Treolan (некондиция), match: "Treolan_NC.xlsx",             worker: treolan,       result: "Treolan_NC.csv",          enabled: true}
+  - {name: Resurs Media (неконд), match: ["ResursMedia_Некондиция*.xlsx", "Resurs Media_price_nec.xlsx"], worker: resurs_nekond, result: "Resurs Media_Nekond.csv", enabled: true}
+  - {name: Resurs Media (структ), match: ["ResursMedia_Регуляр*.xlsx", "Resurs Media_price_struct*.xlsx"], worker: resurs_struct, result: "Resurs Media_Struct.csv", enabled: true}
+  - {name: Treolan,              match: ["Treolan_Регуляр*.xlsx", "Treolan.xlsx"],                worker: treolan,       result: "Treolan.csv",             enabled: true}
+  - {name: Treolan (демо),       match: ["Treolan_Демо*.xlsx", "Treolan_DEMO.xlsx"],           worker: treolan,       result: "Treolan_DEMO.csv",        enabled: true}
+  - {name: Treolan (некондиция), match: ["Treolan_Некондиция*.xlsx", "Treolan_NC.xlsx"],             worker: treolan,       result: "Treolan_NC.csv",          enabled: true}
   - {name: VTT (RUB),            match: "vtt.main.price.rub.xls",      worker: vtt,           result: "VTT_RUB.csv",             enabled: true}
   - {name: VTT (USD),            match: "vtt.main.price.usd.xls",      worker: vtt,           result: "VTT_USD.csv",             enabled: true}
-  - {name: VVP Group,            match: "VVP_Group*",                  worker: vvp,           result: "VVP_Group.csv",           enabled: true}
+  - {name: VVP Group,            match: ["VVPGroup*", "VVP_Group*"],                  worker: vvp,           result: "VVP_Group.csv",           enabled: true}

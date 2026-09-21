@@ -37,12 +37,14 @@ from common.log import setup as setup_log          # noqa: E402
 from workers._base import Ctx                      # noqa: E402
 
 DONE_FILE = "done.txt"
+# Служебные файлы конвейера — не прайс-листы, в сопоставлении не участвуют
+SERVICE_FILES = {DONE_FILE, "converter.lock", "start.cmd", "_start.cmd"}
 
 
 @dataclass
 class Item:
     name: str
-    match: str
+    masks: list
     worker: str
     result: str
     enabled: bool
@@ -68,14 +70,25 @@ def load_settings(path: Path) -> dict:
 def parse_items(cfg: dict) -> list[Item]:
     items = []
     for p in cfg["pricelists"]:
+        raw = p["match"]
+        masks = [str(m) for m in raw] if isinstance(raw, list) else [str(raw)]
         items.append(Item(
             name=str(p["name"]),
-            match=str(p["match"]),
+            masks=masks,
             worker=str(p["worker"]),
             result=str(p["result"]),
             enabled=bool(p.get("enabled", True)),
         ))
     return items
+
+
+def match_any(name: str, masks: list) -> bool:
+    """Имя файла подходит под любую из масок записи (регистр не учитывается)."""
+    return any(fnmatch.fnmatch(name.casefold(), m.casefold()) for m in masks)
+
+
+def mask_str(item: Item) -> str:
+    return " | ".join(item.masks)
 
 
 def archive_original(src: Path, archive_sub: Path) -> None:
@@ -130,11 +143,11 @@ def check(settings_path: Path) -> int:
         return 2 if not ok else 0
 
     print("\nСопоставление файлов входного каталога (dry-run):")
-    files = sorted(p for p in dirs["input"].iterdir() if p.is_file() and p.name != DONE_FILE)
+    files = sorted(p for p in dirs["input"].iterdir()
+                   if p.is_file() and p.name.casefold() not in {s.casefold() for s in SERVICE_FILES})
     claimed: set[Path] = set()
     for item in items:
-        matches = [p for p in files
-                   if p not in claimed and fnmatch.fnmatch(p.name.casefold(), item.match.casefold())]
+        matches = [p for p in files if p not in claimed and match_any(p.name, item.masks)]
         if not item.enabled:
             print(f"  [--] {item.name}: отключён")
             continue
@@ -142,7 +155,7 @@ def check(settings_path: Path) -> int:
             claimed.add(matches[0])
             good(f"{item.name}: «{matches[0].name}» -> {item.result} (воркер {item.worker})")
         else:
-            print(f"  [??] {item.name}: файла по маске «{item.match}» сейчас нет")
+            print(f"  [??] {item.name}: файла по маске «{mask_str(item)}» сейчас нет")
         try:
             importlib.import_module(f"workers.{item.worker}")
         except Exception as e:
@@ -198,8 +211,9 @@ def run(settings_path: Path) -> int:
         lock.write_text(str(os.getpid()), encoding="utf-8")
 
     items = parse_items(cfg)
+    service = {s.casefold() for s in SERVICE_FILES} | {lock.name.casefold()}
     available = sorted(p for p in input_dir.iterdir()
-                       if p.is_file() and p.name not in (DONE_FILE, lock.name))
+                       if p.is_file() and p.name.casefold() not in service)
     claimed: set[Path] = set()
     produced: set[str] = set()
     number = 1
@@ -213,12 +227,11 @@ def run(settings_path: Path) -> int:
             log.info("[%s] SKIP (отключён)", item.name)
             continue
 
-        matches = [p for p in available
-                   if p not in claimed and fnmatch.fnmatch(p.name.casefold(), item.match.casefold())]
+        matches = [p for p in available if p not in claimed and match_any(p.name, item.masks)]
         if not matches:
             item.status = "NO_FILE"
-            item.message = f"файл по маске «{item.match}» не найден"
-            log.warning("[%s] файл не найден (маска «%s»)", item.name, item.match)
+            item.message = f"файл по маске «{mask_str(item)}» не найден"
+            log.warning("[%s] файл не найден (маска «%s»)", item.name, mask_str(item))
             continue
         src = matches[0]
         if len(matches) > 1:
@@ -282,7 +295,7 @@ def run(settings_path: Path) -> int:
     with open(report, "w", encoding="utf-8-sig", newline="\n") as f:
         f.write("Прайс-лист;Маска;Файл;Статус;Строк;Строк с ошибками;Время, сек;Сообщение\n")
         for it in items:
-            f.write(f"{it.name};{it.match};{it.src_file};{it.status};{it.rows};"
+            f.write(f"{it.name};{mask_str(it)};{it.src_file};{it.status};{it.rows};"
                     f"{it.rows_err};{it.seconds:.1f};{it.message}\n")
         if unknown:
             f.write(f";;{', '.join(unknown)};UNKNOWN;;;;нераспознанные файлы\n")
