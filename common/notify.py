@@ -76,7 +76,19 @@ def send_mail(cfg: dict, subject: str, text_body: str, html_body: str | None = N
         ctx = ssl.create_default_context()
     else:
         ctx = ssl._create_unverified_context()    # noqa: SLF001 — осознанно, по настройке
-    with smtplib.SMTP_SSL(cfg["smtp_host"], int(cfg["smtp_port"]),
-                          context=ctx, timeout=60) as smtp:
-        smtp.login(cfg["user"], cfg["password"])
-        smtp.send_message(msg)
+
+    host, port = cfg["smtp_host"], int(cfg["smtp_port"])
+    # security: ssl (весь сеанс шифрован, обычно порт 465) | starttls (порт 587).
+    # Без явной настройки выбирается по порту: 587 -> starttls, иначе ssl.
+    security = str(cfg.get("security", "")).lower() or ("starttls" if port == 587 else "ssl")
+    if security == "starttls":
+        with smtplib.SMTP(host, port, timeout=60) as smtp:
+            smtp.ehlo()
+            smtp.starttls(context=ctx)
+            smtp.ehlo()
+            smtp.login(cfg["user"], cfg["password"])
+            smtp.send_message(msg)
+    else:
+        with smtplib.SMTP_SSL(host, port, context=ctx, timeout=60) as smtp:
+            smtp.login(cfg["user"], cfg["password"])
+            smtp.send_message(msg)

@@ -11,3 +11,5 @@ mail_from: stocks@best-practice.ru
 mail_to: [grigoryf@njsoft.dev, alarkin@best-practice.ru]
 mode: always      # always — письмо после каждого прогона; errors — только при ошибках
 verify_ssl: true  # false, если сертификат сервера самоподписанный
+# Если исходящий порт 465 заблокирован (WinError 10013) — вариант через 587:
+#   smtp_port: 587  (STARTTLS выберется автоматически; можно явно security: starttls)
