@@ -39,7 +39,7 @@ pricelists:
   - {name: iDistribute,          match: "iDistribute.xls",             worker: idistribute,   result: "iDistribute.csv",         enabled: true}
   - {name: Komus,                match: "komus*.xlsx",                worker: komus,         result: "Komus_2.csv",             enabled: true}
   - {name: Marvel,               match: "Marvel.xlsx",                 worker: marvel,        result: "Marvel.csv",              enabled: true}
-  - {name: Merlion,              match: "Merlion_2.xlsm",              worker: merlion,       result: "Merlion_2.csv",           enabled: true}
+  - {name: Merlion,              match: "Merlion*.xlsm",                worker: merlion,       result: "Merlion_2.csv",           enabled: true}
   - {name: MICS,                 match: "MICS.xlsx",                   worker: mics,          result: "MICS.csv",                enabled: true}
   - {name: Netlab,               match: "*.xml",             worker: netlab,        result: "NetLab_XML.csv",          enabled: true}
   - {name: OCS,                  match: "OCS.xlsx",                    worker: ocs,           result: "OCS.csv",                 enabled: true}

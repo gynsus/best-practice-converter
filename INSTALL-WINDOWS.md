@@ -45,7 +45,7 @@ C:\Convert\best-practice-converter\.venv\Scripts\python.exe C:\Convert\best-prac
 | iDistribute | `iDistribute.xls` | iDistribute.csv |
 | Komus | `komus*.xlsx` (CSV-дубль игнорируется) | Komus_2.csv |
 | Marvel | `Marvel.xlsx` | Marvel.csv |
-| Merlion | `Merlion_2.xlsm` | Merlion_2.csv |
+| Merlion | `Merlion*.xlsm` (Merlion.xlsm или Merlion_2.xlsm) | Merlion_2.csv |
 | MICS | `MICS.xlsx` | MICS.csv |
 | Netlab | `*.xml` (Price.xml, NetlabPrice.xml) | NetLab_XML.csv |
 | OCS | `OCS.xlsx` | OCS.csv |
