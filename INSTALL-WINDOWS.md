@@ -59,8 +59,11 @@ C:\Convert\best-practice-converter\.venv\Scripts\python.exe C:\Convert\best-prac
 | VTT (USD) | `vtt.main.price.usd.xls` | VTT_USD.csv |
 | VVP Group | `VVPGroup*` / `VVP_Group*` | VVP_Group.csv |
 
-Служебные файлы (`_start.cmd`, `start.cmd`, `done.txt`, `converter.lock`)
-игнорируются и предупреждений не вызывают.
+Служебные файлы (`_start.cmd`, `start.cmd`, `done.txt`, `ready.txt`,
+`converter.lock`) игнорируются и предупреждений не вызывают. `ready.txt`
+создаёт разборщик почты при первом сохранённом за день прайсе; конвертер
+после прогона забирает его в архив, а если файлов много, но `ready.txt`
+нет — пишет в лог предупреждение (почта, возможно, не разбиралась).
 
 Если поставщик присылает файлы с датой в имени (например
 `price_treolan_2026-09-21.xlsx`) — поменяйте маску записи на

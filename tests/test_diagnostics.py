@@ -91,6 +91,7 @@ def test_run_writes_diagnostics(tmp_path, monkeypatch):
     import shutil
     shutil.copy(FIXTURES / "Treolan_DEMO.xlsx", inp / "Treolan_DEMO.xlsx")
     (inp / "мусор.bin").write_bytes(b"x")
+    (inp / "ready.txt").write_text("09:15:00 Treolan_DEMO.xlsx\n", encoding="utf-8")
     settings = tmp_path / "s.yaml"
     settings.write_text(yaml.safe_dump(dict(
         dirs=dict(input=str(inp), output=str(out), archive=str(arc)),
@@ -122,3 +123,7 @@ def test_run_writes_diagnostics(tmp_path, monkeypatch):
     assert (out / "Treolan_DEMO.csv").is_file()
     assert (out / "done.txt").is_file()
     assert not (out / "converter.lock").exists()
+    # ready.txt не попал в UNKNOWN и забран в архив
+    assert not any("ready.txt" in ln for ln in lines)
+    assert not (inp / "ready.txt").exists()
+    assert (sub / "ready.txt").is_file()

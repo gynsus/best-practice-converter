@@ -39,10 +39,12 @@ from common import report_html                     # noqa: E402
 from workers._base import Ctx                      # noqa: E402
 
 DONE_FILE = "done.txt"
+READY_FILE = "ready.txt"         # создаётся разборщиком почты в input при первом
+                                 # сохранённом прайсе; после прогона уходит в архив
 STATUS_FILE = "status.txt"       # сводка последнего прогона в выходном каталоге
 REPORT_PAGE = "report.html"      # страница диагностики в выходном каталоге
 # Служебные файлы конвейера — не прайс-листы, в сопоставлении не участвуют
-SERVICE_FILES = {DONE_FILE, "converter.lock", "start.cmd", "_start.cmd"}
+SERVICE_FILES = {DONE_FILE, READY_FILE, "converter.lock", "start.cmd", "_start.cmd"}
 
 
 @dataclass
@@ -269,6 +271,11 @@ def _run_locked(cfg: dict, input_dir: Path, output_dir: Path, archive_dir: Path,
     had_error = False
     done_count = 0
 
+    ready = input_dir / READY_FILE
+    if available and not ready.exists():
+        log.warning("%s не найден в input — возможно, разбор почты сегодня не выполнялся "
+                    "(обрабатываем то, что есть)", READY_FILE)
+
     # Отчёт пишется ИНКРЕМЕНТАЛЬНО — строка за строкой по ходу прогона:
     # при аварийном обрыве отчёт остаётся заполненным до места падения
     report = archive_sub / f"run_report_{datetime.now():%H%M%S}.csv"
@@ -361,6 +368,14 @@ def _run_locked(cfg: dict, input_dir: Path, output_dir: Path, archive_dir: Path,
     if done_count and cfg.get("defaults", {}).get("write_done", True):
         (output_dir / DONE_FILE).write_text("", encoding="utf-8")
         log.info("Создан %s (обработано файлов: %d)", DONE_FILE, done_count)
+
+    # ready.txt разборщика почты выполнил свою роль — забираем в архив,
+    # чтобы завтра его отсутствие снова было информативным
+    if ready.exists():
+        try:
+            archive_original(ready, archive_sub)
+        except OSError as e:
+            log.warning("%s не перемещён в архив: %s", READY_FILE, e)
 
     finished = datetime.now()
     err_count = sum(1 for i in items if i.status == "ERROR")
