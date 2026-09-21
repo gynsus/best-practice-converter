@@ -50,5 +50,7 @@ pricelists:
   - {name: Treolan (демо),       match: ["Treolan_Демо*.xlsx", "Treolan_DEMO.xlsx"],           worker: treolan,       result: "Treolan_DEMO.csv",        enabled: true}
   - {name: Treolan (некондиция), match: ["Treolan_Некондиция*.xlsx", "Treolan_NC.xlsx"],             worker: treolan,       result: "Treolan_NC.csv",          enabled: true}
   - {name: VTT (RUB),            match: "vtt.main.price.rub.xls",      worker: vtt,           result: "VTT_RUB.csv",             enabled: true}
-  - {name: VTT (USD),            match: "vtt.main.price.usd.xls",      worker: vtt,           result: "VTT_USD.csv",             enabled: true}
+  # Оснастка забирает только рублёвый прайс VTT — usd отключён 21.09.2026,
+  # чтобы не было ежесуточного «файл не найден»; вернуть: enabled: true
+  - {name: VTT (USD),            match: "vtt.main.price.usd.xls",      worker: vtt,           result: "VTT_USD.csv",             enabled: false}
   - {name: VVP Group,            match: ["VVPGroup*", "VVP_Group*"],                  worker: vvp,           result: "VVP_Group.csv",           enabled: true}
