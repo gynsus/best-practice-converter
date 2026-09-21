@@ -73,10 +73,12 @@ def test_number_or_text():
 # --- Словари ---
 
 def test_currency_map():
-    for raw in ("RUB", "RUR", "руб.", "Руб.", "₽", " rur "):
+    for raw in ("RUB", "RUR", "руб.", "Руб.", "рубли", "₽", " rur "):
         assert map_currency(raw) == "RUB", raw
-    assert map_currency("$") == "USD"
-    assert map_currency("€") == "EUR"
+    for raw in ("$", "USD", "долл."):
+        assert map_currency(raw) == "USD", raw
+    for raw in ("€", "EUR", "евро", "Евро"):
+        assert map_currency(raw) == "EUR", raw
     assert map_currency("XXX") is None
     assert map_currency("") is None
 

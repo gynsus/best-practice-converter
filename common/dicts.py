@@ -7,9 +7,9 @@ import re
 
 # --- Валюты (ТЗ табл. 1). Ключ — нормализованное значение поставщика. ---
 _CURRENCY = {
-    "RUB": "RUB", "RUR": "RUB", "РУБ": "RUB", "₽": "RUB",
-    "USD": "USD", "$": "USD",
-    "EUR": "EUR", "€": "EUR",
+    "RUB": "RUB", "RUR": "RUB", "РУБ": "RUB", "РУБЛИ": "RUB", "₽": "RUB",
+    "USD": "USD", "$": "USD", "ДОЛЛ": "USD",
+    "EUR": "EUR", "€": "EUR", "ЕВРО": "EUR",
 }
 _CUR_STRIP = re.compile(r"[\s.]+")
 
