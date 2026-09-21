@@ -36,7 +36,8 @@ def load_email_cfg(base_dir: Path) -> dict | None:
     if not path.is_file():
         return None
     try:
-        cfg = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        # utf-8-sig: файл может быть создан через Set-Content в PowerShell 5.1 (BOM)
+        cfg = yaml.safe_load(path.read_text(encoding="utf-8-sig")) or {}
         if not cfg.get("enabled"):
             return None
         for key in ("smtp_host", "smtp_port", "user", "password", "mail_to"):
