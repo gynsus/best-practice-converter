@@ -1,0 +1,13 @@
+# Шаблон настроек почтовых уведомлений. Установка на VPS (две команды):
+#   iwr -useb https://raw.githubusercontent.com/gynsus/best-practice-converter/main/email.example.yaml -OutFile C:\Convert\best-practice-converter\email.yaml
+#   (Get-Content C:\Convert\best-practice-converter\email.yaml) -replace 'PASTE_PASSWORD_HERE','настоящий_пароль' | Set-Content C:\Convert\best-practice-converter\email.yaml -Encoding UTF8
+# Рабочий email.yaml в репозиторий не попадает (.gitignore) и сохраняется при обновлении.
+enabled: true
+smtp_host: mail.best-practice.ru
+smtp_port: 465
+user: stocks@best-practice.ru
+password: "PASTE_PASSWORD_HERE"
+mail_from: stocks@best-practice.ru
+mail_to: [grigoryf@njsoft.dev, alarkin@best-practice.ru]
+mode: always      # always — письмо после каждого прогона; errors — только при ошибках
+verify_ssl: true  # false, если сертификат сервера самоподписанный

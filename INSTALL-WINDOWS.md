@@ -105,20 +105,15 @@ cmdkey /add:dev.best-practice.ru /user:ИМЯ /pass:ПАРОЛЬ
 
 Учётные данные почты хранятся ТОЛЬКО на VPS в файле
 `C:\Convert\best-practice-converter\email.yaml` (в репозиторий не попадает,
-при обновлении сохраняется). Создать файл — вставить в PowerShell одним блоком:
+при обновлении сохраняется). Создание — две однострочные команды
+(многострочная вставка через браузерный RDP теряет переводы строк):
 
 ```powershell
-Set-Content C:\Convert\best-practice-converter\email.yaml -Encoding UTF8 -Value @'
-enabled: true
-smtp_host: mail.best-practice.ru
-smtp_port: 465
-user: stocks@best-practice.ru
-password: "PASSWORD_HERE"
-mail_from: stocks@best-practice.ru
-mail_to: [grigoryf@njsoft.dev, alarkin@best-practice.ru]
-mode: always
-verify_ssl: true
-'@
+iwr -useb https://raw.githubusercontent.com/gynsus/best-practice-converter/main/email.example.yaml -OutFile C:\Convert\best-practice-converter\email.yaml
+```
+
+```powershell
+(Get-Content C:\Convert\best-practice-converter\email.yaml) -replace 'PASTE_PASSWORD_HERE','настоящий_пароль' | Set-Content C:\Convert\best-practice-converter\email.yaml -Encoding UTF8
 ```
 
 `mode: always` — письмо после каждого прогона; `errors` — только при ошибках
