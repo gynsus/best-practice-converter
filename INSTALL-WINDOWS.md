@@ -140,3 +140,14 @@ iwr -useb https://raw.githubusercontent.com/gynsus/best-practice-converter/main/
 - Ранние фатальные ошибки (до создания лога):
   `C:\Convert\best-practice-converter\launcher.log`;
 - туда же в архив перемещаются обработанные исходники.
+
+## Отправить текущие результаты себе на почту (ZIP)
+
+```powershell
+C:\Convert\best-practice-converter\.venv\Scripts\python.exe C:\Convert\best-practice-converter\send_output.py
+```
+
+Соберёт все CSV из output в ZIP и отправит на grigoryf@njsoft.dev (SMTP из
+email.yaml). Опции: `--to адрес` — другой получатель; `--mask "*"` — всё
+содержимое output (включая report.html/status.txt); `--dry-run` — показать
+состав архива без отправки.

@@ -82,6 +82,23 @@ def test_email_cfg_broken_is_ignored(tmp_path):
     assert load_email_cfg(tmp_path) is None  # нет обязательных полей -> отключено
 
 
+# --- send_output.py: сбор файлов output и ZIP ---
+
+def test_send_output_collect_and_zip(tmp_path):
+    import io, zipfile
+    from send_output import build_zip, collect
+    (tmp_path / "A.csv").write_text("данные;1\n", encoding="utf-8-sig")
+    (tmp_path / "B.CSV").write_text("x\n", encoding="utf-8")
+    (tmp_path / "report.html").write_text("<html>", encoding="utf-8")
+    (tmp_path / "converter.lock").write_text("1", encoding="utf-8")
+    files = collect(tmp_path, "*.csv")
+    assert [p.name for p in files] == ["A.csv", "B.CSV"]      # регистр не важен, lock исключён
+    assert len(collect(tmp_path, "*")) == 3                    # без lock
+    with zipfile.ZipFile(io.BytesIO(build_zip(files))) as z:
+        assert sorted(z.namelist()) == ["A.csv", "B.CSV"]
+        assert "данные" in z.read("A.csv").decode("utf-8-sig")
+
+
 # --- Реальный прогон: инкрементальный отчёт, status.txt, report.html ---
 
 @pytest.mark.skipif(not FIXTURES.is_dir(), reason="нет fixtures")
