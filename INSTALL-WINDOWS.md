@@ -47,7 +47,7 @@ C:\Convert\best-practice-converter\.venv\Scripts\python.exe C:\Convert\best-prac
 | Marvel | `Marvel.xlsx` | Marvel.csv |
 | Merlion | `Merlion*.xlsm` (Merlion.xlsm или Merlion_2.xlsm) | Merlion_2.csv |
 | MICS | `MICS.xlsx` | MICS.csv |
-| Netlab | `*.xml` (Price.xml, NetlabPrice.xml) | NetLab_XML.csv |
+| Netlab | `Price.xml` (или `NetlabPrice.xml`) | NetLab_XML.csv |
 | OCS | `OCS.xlsx` | OCS.csv |
 | ProWay | `ProWay.xlsx` | ProWay.csv |
 | Resurs Media (неконд.) | `ResursMedia_Некондиция*.xlsx` | Resurs Media_Nekond.csv |

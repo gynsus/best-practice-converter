@@ -27,7 +27,9 @@ dirs:
 #  archive: /home/sftpg/archive
 
 defaults:
-  write_done: true   # создавать done.txt после успешной обработки >=1 файла
+  write_done: true   # done.txt создаётся В САМОМ КОНЦЕ прогона (после обработки
+                     # всех записей), и только если успешно обработан хотя бы один
+                     # файл; при пустом дне не создаётся
 
 pricelists:
   - {name: 3LOGIC,               match: "3logic*.xlsx",               worker: logic3_2,      result: "3logic_2.csv",            enabled: true}
@@ -41,7 +43,7 @@ pricelists:
   - {name: Marvel,               match: "Marvel.xlsx",                 worker: marvel,        result: "Marvel.csv",              enabled: true}
   - {name: Merlion,              match: "Merlion*.xlsm",                worker: merlion,       result: "Merlion_2.csv",           enabled: true}
   - {name: MICS,                 match: "MICS.xlsx",                   worker: mics,          result: "MICS.csv",                enabled: true}
-  - {name: Netlab,               match: "*.xml",             worker: netlab,        result: "NetLab_XML.csv",          enabled: true}
+  - {name: Netlab,               match: ["Price.xml", "NetlabPrice.xml"],             worker: netlab,        result: "NetLab_XML.csv",          enabled: true}
   - {name: OCS,                  match: "OCS.xlsx",                    worker: ocs,           result: "OCS.csv",                 enabled: true}
   - {name: ProWay,               match: "ProWay.xlsx",                 worker: proway,        result: "ProWay.csv",              enabled: true}
   - {name: Resurs Media (неконд), match: ["ResursMedia_Некондиция*.xlsx", "Resurs Media_price_nec.xlsx"], worker: resurs_nekond, result: "Resurs Media_Nekond.csv", enabled: true}
