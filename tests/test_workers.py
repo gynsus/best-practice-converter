@@ -208,11 +208,13 @@ pricelists:
     assert {r[17] for r in demo} == {"Демо"}
     assert {r[17] for r in t} == {"Стандарт"}
 
-    # оригиналы ушли в архивный подкаталог ГГГГ.ММ.ДД, вход пуст (кроме junk)
+    # оригиналы ушли в архив запуска ГГГГ.ММ.ДД/1/Input, вход пуст (кроме junk)
     subdirs = [d for d in archive_dir.iterdir() if d.is_dir()]
     assert len(subdirs) == 1 and re.match(r"\d{4}\.\d{2}\.\d{2}$", subdirs[0].name)
-    archived = {p.name for p in subdirs[0].iterdir()}
+    run_dir = subdirs[0] / "1"
+    archived = {p.name for p in (run_dir / "Input").iterdir()}
     assert "Getsy.xlsx" in archived and "Treolan.xlsx" in archived
-    assert any(p.name.startswith("run_report_") for p in subdirs[0].iterdir())
+    assert any(p.name.startswith("run_report_") for p in (run_dir / "Log").iterdir())
+    assert (run_dir / "Output" / "Getsy.csv").is_file()   # копия результата
     left = {p.name for p in input_dir.iterdir()}
     assert left == {"Неизвестный прайс.xlsx"}
