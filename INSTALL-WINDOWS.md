@@ -36,28 +36,28 @@ C:\Convert\best-practice-converter\.venv\Scripts\python.exe C:\Convert\best-prac
 
 | Поставщик | Имя файла в input (маска) | Файл результата |
 |---|---|---|
-| 3LOGIC | `3logic*.xlsx` | 3logic_2.csv |
+| 3LOGIC | `3logic*.xlsx` | 3logic.csv |
 | A1TIS | `A1TIS.xls*` | A1TIS.csv |
 | ABSOLUT TRADE | `ABSOLUT TRADE.xlsx` | ABSOLUT TRADE.csv |
 | ARTRON | `Artron.xlsx` | Artron.csv |
 | Citilink | `Citilink*.xlsx` | Citilink.csv |
 | Getsy | `Getsy.xlsx` | Getsy.csv |
 | iDistribute | `iDistribute.xls` | iDistribute.csv |
-| Komus | `komus*.xlsx` (CSV-дубль игнорируется) | Komus_2.csv |
+| Komus | `komus*.xlsx` (CSV-дубль игнорируется) | Komus.csv |
 | Marvel | `Marvel.xlsx` | Marvel.csv |
-| Merlion | `Merlion*.xlsm` (Merlion.xlsm или Merlion_2.xlsm) | Merlion_2.csv |
+| Merlion | `Merlion*.xlsm` (Merlion.xlsm или Merlion_2.xlsm) | Merlion.csv |
 | MICS | `MICS.xlsx` | MICS.csv |
 | Netlab | `Price.xml` (или `NetlabPrice.xml`) | NetLab_XML.csv |
 | OCS | `OCS.xlsx` | OCS.csv |
 | ProWay | `ProWay.xlsx` | ProWay.csv |
-| Resurs Media (неконд.) | `ResursMedia_Некондиция*.xlsx` | Resurs Media_Nekond.csv |
-| Resurs Media (структ.) | `ResursMedia_Регуляр*.xlsx` | Resurs Media_Struct.csv |
-| Treolan | `Treolan_Регуляр*.xlsx` (или `Treolan.xlsx`) | Treolan.csv |
-| Treolan (демо) | `Treolan_Демо*.xlsx` (или `Treolan_DEMO.xlsx`) | Treolan_DEMO.csv |
-| Treolan (некондиция) | `Treolan_Некондиция*.xlsx` (или `Treolan_NC.xlsx`) | Treolan_NC.csv |
-| VTT (RUB) | `vtt.main.price.rub.xls` | VTT_RUB.csv |
+| Resurs Media (неконд.) | `ResursMedia_Некондиция*.xlsx` | ResursMedia_Некондиция.csv |
+| Resurs Media (структ.) | `ResursMedia_Регуляр*.xlsx` | ResursMedia_Регуляр.csv |
+| Treolan | `Treolan_Регуляр*.xlsx` (или `Treolan.xlsx`) | Treolan_Регуляр.csv |
+| Treolan (демо) | `Treolan_Демо*.xlsx` (или `Treolan_DEMO.xlsx`) | Treolan_Демо.csv |
+| Treolan (некондиция) | `Treolan_Некондиция*.xlsx` (или `Treolan_NC.xlsx`) | Treolan_Некондиция.csv |
+| VTT (RUB) | `vtt.main.price.rub.xls` | VTT.csv |
 | VTT (USD) | `vtt.main.price.usd.xls` | VTT_USD.csv |
-| VVP Group | `VVPGroup*` / `VVP_Group*` | VVP_Group.csv |
+| VVP Group | `VVPGroup*` / `VVP_Group*` | VVPGroup.csv |
 
 Служебные файлы (`_start.cmd`, `start.cmd`, `done.txt`, `ready.txt`,
 `converter.lock`) игнорируются и предупреждений не вызывают. `ready.txt`
