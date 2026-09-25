@@ -123,8 +123,13 @@ def test_run_writes_diagnostics(tmp_path, monkeypatch):
     rc = main.run(settings)
     assert rc == 0
 
-    sub = next(arc.glob("????.??.??"))
-    rep = next(sub.glob("run_report_*.csv"))
+    # иерархия архива: ГГГГ.ММ.ДД/<номер запуска>/{Input,Output,Log}
+    sub = next(arc.glob("????.??.??")) / "1"
+    assert (sub / "Input").is_dir() and (sub / "Output").is_dir() and (sub / "Log").is_dir()
+    rep = next((sub / "Log").glob("run_report_*.csv"))
+    assert next((sub / "Log").glob("run_*.log"), None) is not None
+    assert (sub / "Input" / "Treolan_DEMO.xlsx").is_file()     # исходник в Input
+    assert (sub / "Output" / "Treolan_DEMO.csv").is_file()     # копия результата в Output
     lines = rep.read_text(encoding="utf-8-sig").splitlines()
     assert any("DONE" in ln for ln in lines)
     assert any("SKIP" in ln for ln in lines)
@@ -140,7 +145,12 @@ def test_run_writes_diagnostics(tmp_path, monkeypatch):
     assert (out / "Treolan_DEMO.csv").is_file()
     assert (out / "done.txt").is_file()
     assert not (out / "converter.lock").exists()
-    # ready.txt не попал в UNKNOWN и забран в архив
+    # ready.txt не попал в UNKNOWN и забран в архив запуска (Input)
     assert not any("ready.txt" in ln for ln in lines)
     assert not (inp / "ready.txt").exists()
-    assert (sub / "ready.txt").is_file()
+    assert (sub / "Input" / "ready.txt").is_file()
+
+    # второй запуск в тот же день -> папка «2»
+    rc2 = main.run(settings)
+    assert rc2 == 0
+    assert (sub.parent / "2" / "Log").is_dir()

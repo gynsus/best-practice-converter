@@ -133,13 +133,15 @@ iwr -useb https://raw.githubusercontent.com/gynsus/best-practice-converter/main/
 - Диагностика в браузере: `\\dev.best-practice.ru\output\report.html` —
   таблица последнего прогона со статусами + история прогонов;
 - Результаты: `\\dev.best-practice.ru\output` (CSV + `done.txt`);
-- Логи и отчёты: `\\dev.best-practice.ru\archive\ГГГГ.ММ.ДД\` —
-  `run_*.log` (подробный лог с трейсбеками) и `run_report_*.csv`
-  (пишется построчно по ходу прогона — при обрыве заполнен до места падения);
-  история всех прогонов — `\\dev.best-practice.ru\archive\history.csv`;
+- Архив: `\\dev.best-practice.ru\archive\ГГГГ.ММ.ДД\<N>\` — папка на каждый
+  запуск (N = 1, 2, … за день) с подпапками:
+  `Input\` — обработанные исходники и ready.txt; `Output\` — копии CSV этого
+  прогона; `Log\` — `run_*.log` (подробный лог с трейсбеками) и
+  `run_report_*.csv` (пишется построчно по ходу прогона — при обрыве заполнен
+  до места падения);
+- История всех прогонов: `\\dev.best-practice.ru\archive\history.csv`;
 - Ранние фатальные ошибки (до создания лога):
-  `C:\Convert\best-practice-converter\launcher.log`;
-- туда же в архив перемещаются обработанные исходники.
+  `C:\Convert\best-practice-converter\launcher.log`.
 
 ## Отправить текущие результаты себе на почту (ZIP)
 

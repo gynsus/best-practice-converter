@@ -6,7 +6,8 @@
 
     python3 main.py [--settings settings.yaml]
 
-Алгоритм (ТЗ 4.1): рабочий подкаталог ГГГГ.ММ.ДД в архиве -> обнаружение
+Алгоритм (ТЗ 4.1): рабочий подкаталог запуска ГГГГ.ММ.ДД\<N>\{Input,Output,Log}
+в архиве (N — номер запуска за день) -> обнаружение
 прайс-листов -> сличение имён с настройками (точное имя или маска) ->
 для каждого: копия во временный файл, оригинал в архив, запуск воркера ->
 сквозная нумерация «без зазоров» -> отчёт прогона -> done.txt.
@@ -215,15 +216,22 @@ def run(settings_path: Path) -> int:
             notify_fatal(f"Входной каталог недоступен: {input_dir}")
             return 2
         output_dir.mkdir(parents=True, exist_ok=True)
-        # Рабочий подкаталог: имя фиксируется на старте и не меняется (ТЗ 4.1.1)
-        archive_sub = archive_dir / datetime.now().strftime("%Y.%m.%d")
-        archive_sub.mkdir(parents=True, exist_ok=True)
+        # Рабочий подкаталог запуска: archive\ГГГГ.ММ.ДД\<номер запуска за день>\
+        # с подпапками Input (исходники), Output (копии CSV), Log (логи и отчёт).
+        # Имя фиксируется на старте и не меняется (ТЗ 4.1.1).
+        date_dir = archive_dir / datetime.now().strftime("%Y.%m.%d")
+        date_dir.mkdir(parents=True, exist_ok=True)
+        run_no = 1 + max((int(p.name) for p in date_dir.iterdir()
+                          if p.is_dir() and p.name.isdigit()), default=0)
+        archive_sub = date_dir / str(run_no)
+        for sub in ("Input", "Output", "Log"):
+            (archive_sub / sub).mkdir(parents=True, exist_ok=True)
     except OSError as e:
         print(f"ФАТАЛЬНО: каталог недоступен (сеть/права): {e}", file=sys.stderr)
         notify_fatal(f"Каталог недоступен (сеть/права): {e}")
         return 2
 
-    log = setup_log(archive_sub / f"run_{datetime.now():%H%M%S}.log")
+    log = setup_log(archive_sub / "Log" / f"run_{datetime.now():%H%M%S}.log")
     log.info("Старт. Вход: %s | Выход: %s | Архив: %s", input_dir, output_dir, archive_sub)
 
     # Защита от параллельного запуска (наложение прогонов планировщика)
@@ -244,7 +252,7 @@ def run(settings_path: Path) -> int:
     write_status(output_dir,
                  f"RUNNING: старт {started:%d.%m.%Y %H:%M:%S}, PID {os.getpid()}\n"
                  f"Если прогон давно должен был завершиться, а эта строка осталась — "
-                 f"он оборвался аварийно; см. run_*.log в {archive_sub}\n")
+                 f"он оборвался аварийно; см. run_*.log в {archive_sub / 'Log'}\n")
     try:
         return _run_locked(cfg, input_dir, output_dir, archive_dir, archive_sub,
                            lock, log, started)
@@ -253,7 +261,7 @@ def run(settings_path: Path) -> int:
         log.debug("%s", traceback.format_exc())
         write_status(output_dir,
                      f"FATAL: прогон {started:%d.%m.%Y %H:%M:%S} оборван ошибкой: {e}\n"
-                     f"Подробности: run_*.log в {archive_sub}\n")
+                     f"Подробности: run_*.log в {archive_sub / 'Log'}\n")
         notify_fatal(f"Прогон оборван непредвиденной ошибкой.\n\n{traceback.format_exc()}")
         lock.unlink(missing_ok=True)
         return 2
@@ -278,7 +286,7 @@ def _run_locked(cfg: dict, input_dir: Path, output_dir: Path, archive_dir: Path,
 
     # Отчёт пишется ИНКРЕМЕНТАЛЬНО — строка за строкой по ходу прогона:
     # при аварийном обрыве отчёт остаётся заполненным до места падения
-    report = archive_sub / f"run_report_{datetime.now():%H%M%S}.csv"
+    report = archive_sub / "Log" / f"run_report_{datetime.now():%H%M%S}.csv"
     rep_f = open(report, "w", encoding="utf-8-sig", newline="\n")
     rep_f.write("Прайс-лист;Маска;Файл;Статус;Строк;Строк с ошибками;Время, сек;Сообщение\n")
     rep_f.flush()
@@ -318,9 +326,9 @@ def _run_locked(cfg: dict, input_dir: Path, output_dir: Path, archive_dir: Path,
         tmp = tmp_dir / src.name
         t0 = time.monotonic()
         try:
-            # Копия во временный файл, оригинал — в архив (ТЗ 4.1.4)
+            # Копия во временный файл, оригинал — в архив запуска (ТЗ 4.1.4)
             shutil.copy2(str(src), str(tmp))
-            archive_original(src, archive_sub)
+            archive_original(src, archive_sub / "Input")
 
             module = importlib.import_module(f"workers.{item.worker}")
             res = module.process(tmp, out_part, number, Ctx(pricelist_name=item.name))
@@ -331,6 +339,10 @@ def _run_locked(cfg: dict, input_dir: Path, output_dir: Path, archive_dir: Path,
                 raise RuntimeError(f"результат «{item.result}» уже создан этим прогоном другой записью настроек")
             out_part.replace(out_final)  # результат целиком либо никак
             produced.add(item.result)
+            try:  # копия результата в архив запуска (Output) — не критична для прогона
+                shutil.copy2(str(out_final), str(archive_sub / "Output" / out_final.name))
+            except OSError as e:
+                log.warning("[%s] копия результата в архив не записана: %s", item.name, e)
 
             for w in res.warnings:
                 log.warning("[%s] %s", item.name, w)
@@ -373,7 +385,7 @@ def _run_locked(cfg: dict, input_dir: Path, output_dir: Path, archive_dir: Path,
     # чтобы завтра его отсутствие снова было информативным
     if ready.exists():
         try:
-            archive_original(ready, archive_sub)
+            archive_original(ready, archive_sub / "Input")
         except OSError as e:
             log.warning("%s не перемещён в архив: %s", READY_FILE, e)
 
