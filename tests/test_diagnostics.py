@@ -82,6 +82,21 @@ def test_email_cfg_broken_is_ignored(tmp_path):
     assert load_email_cfg(tmp_path) is None  # нет обязательных полей -> отключено
 
 
+# --- --server: подмена каталогов на другой сервер ---
+
+def test_apply_server():
+    cfg = {"dirs": {"input": r"\\dev.x\input", "output": r"\\dev.x\output",
+                    "archive": r"\\dev.x\archive"}}
+    out = main.apply_server(cfg, "best-practice.ru")
+    assert out["dirs"]["input"] == r"\\best-practice.ru\input"
+    assert out["dirs"]["output"] == r"\\best-practice.ru\output"
+    assert out["dirs"]["archive"] == r"\\best-practice.ru\archive"
+    out = main.apply_server(cfg, r"\\host\ ".strip())   # лишние слэши срезаются
+    assert out["dirs"]["input"] == r"\\host\input"
+    cfg2 = {"dirs": {"input": "/a", "output": "/b", "archive": "/c"}}
+    assert main.apply_server(cfg2, None)["dirs"]["input"] == "/a"  # без параметра — как было
+
+
 # --- send_output.py: сбор файлов output и ZIP ---
 
 def test_send_output_collect_and_zip(tmp_path):

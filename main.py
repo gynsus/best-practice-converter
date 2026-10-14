@@ -107,7 +107,17 @@ def archive_original(src: Path, archive_sub: Path) -> None:
     shutil.move(str(src), str(target))
 
 
-def check(settings_path: Path) -> int:
+def apply_server(cfg: dict, server: str | None) -> dict:
+    """--server HOST: работать с каталогами \\\\HOST\\{input,output,archive}
+    вместо путей из settings.yaml (сами настройки не меняются)."""
+    if server:
+        host = server.strip().strip("\\/")
+        for key in ("input", "output", "archive"):
+            cfg["dirs"][key] = f"\\\\{host}\\{key}"
+    return cfg
+
+
+def check(settings_path: Path, server: str | None = None) -> int:
     """Предварительная проверка без обработки: настройки, доступность каталогов
     (в т.ч. сетевых UNC), права на запись, сопоставление файлов входного
     каталога записям настроек. Ничего не перемещает и не конвертирует."""
@@ -121,8 +131,10 @@ def check(settings_path: Path) -> int:
         print(f"  [!!] {msg}")
 
     print(f"Настройки: {settings_path}")
+    if server:
+        print(f"Сервер (--server): \\\\{server} — каталоги settings.yaml перекрыты")
     try:
-        cfg = load_settings(settings_path)
+        cfg = apply_server(load_settings(settings_path), server)
         items = parse_items(cfg)
         good(f"настройки прочитаны, записей прайс-листов: {len(items)}")
     except Exception as e:
@@ -196,9 +208,9 @@ def notify_fatal(message: str) -> None:
         print(f"письмо о фатальной ошибке не отправлено: {e}", file=sys.stderr)
 
 
-def run(settings_path: Path) -> int:
+def run(settings_path: Path, server: str | None = None) -> int:
     try:
-        cfg = load_settings(settings_path)
+        cfg = apply_server(load_settings(settings_path), server)
     except Exception as e:
         print(f"ФАТАЛЬНО: настройки не прочитаны: {e}", file=sys.stderr)
         notify_fatal(f"Настройки не прочитаны: {e}")
@@ -254,6 +266,7 @@ def run(settings_path: Path) -> int:
                  f"Если прогон давно должен был завершиться, а эта строка осталась — "
                  f"он оборвался аварийно; см. run_*.log в {archive_sub / 'Log'}\n")
     try:
+        cfg["_server"] = server  # для пометки в теме письма, какой сервер обработан
         return _run_locked(cfg, input_dir, output_dir, archive_dir, archive_sub,
                            lock, log, started)
     except Exception as e:  # непредвиденное падение вне обработки одного файла
@@ -427,7 +440,8 @@ def _run_locked(cfg: dict, input_dir: Path, output_dir: Path, archive_dir: Path,
     if want_mail(email_cfg, had_error):
         try:
             text, html_body = report_html.render_email(items, unknown, summary)
-            subject = (f"Конвертер прайс-листов: {summary['result']} — "
+            srv = f" [{cfg['_server']}]" if cfg.get("_server") else ""
+            subject = (f"Конвертер прайс-листов{srv}: {summary['result']} — "
                        f"обработано {done_count}, ошибок {err_count}, "
                        f"строк {summary['rows']} ({summary['date']})")
             attach = [(report.name, report.read_bytes(), "text", "csv")]
@@ -451,8 +465,12 @@ def main() -> None:
                         help="файл настроек (по умолчанию settings.yaml рядом со скриптом)")
     parser.add_argument("--check", action="store_true",
                         help="только проверить настройки/каталоги/сопоставление файлов, без обработки")
+    parser.add_argument("--server", metavar="HOST", default=None,
+                        help="хост сетевых папок: работать с каталогами \\\\HOST\\{input,output,archive} "
+                             "вместо путей из settings.yaml (например --server best-practice.ru)")
     args = parser.parse_args()
-    sys.exit(check(args.settings) if args.check else run(args.settings))
+    sys.exit(check(args.settings, args.server) if args.check
+             else run(args.settings, args.server))
 
 
 if __name__ == "__main__":

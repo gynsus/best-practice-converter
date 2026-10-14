@@ -69,6 +69,31 @@ C:\Convert\best-practice-converter\.venv\Scripts\python.exe C:\Convert\best-prac
 `price_treolan_2026-09-21.xlsx`) — поменяйте маску записи на
 `price_treolan*` в `settings.yaml`, ничего больше менять не нужно.
 
+## Запуск на боевом сервере (--server)
+
+По умолчанию каталоги берутся из `settings.yaml` (`\\dev.best-practice.ru`).
+Параметр `--server HOST` перекрывает их на `\\HOST\{input,output,archive}`,
+сами настройки не меняются. Работает и у `run.cmd` (он пробрасывает аргументы),
+и у `--check`; в теме письма-отчёта такой прогон помечается `[HOST]`.
+
+```powershell
+C:\Convert\best-practice-converter\.venv\Scripts\python.exe C:\Convert\best-practice-converter\main.py --check --server best-practice.ru
+```
+
+```powershell
+C:\Convert\best-practice-converter\run.cmd --server best-practice.ru
+```
+
+Отдельная задача планировщика для боевого сервера (например, в 22:30, чтобы
+не пересекаться с dev-прогоном):
+
+```powershell
+schtasks /Create /F /TN "PriceConverterProd" /SC DAILY /ST 22:30 /TR "C:\Convert\best-practice-converter\run.cmd --server best-practice.ru"
+```
+
+Прогоны по разным серверам независимы: у каждого свои `converter.lock`,
+`status.txt`, `report.html` в своём output и своя история в своём archive.
+
 ## Планировщик задач
 
 Запускать через `run.cmd` — он перенаправляет весь вывод (включая ранние
